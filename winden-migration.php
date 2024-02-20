@@ -1,6 +1,6 @@
 <?php
 /*
- * Plugin Name:       Winden Migration v1 - v2
+ * Plugin Name:       Winden Migration from v1.x.x to v2.x.x
  * Plugin URI:        https://example.com/plugins/tailwind-cdn-for-gutenberg/
  * Description:       Handle the basics with this plugin.
  * Version:           0.0.1
