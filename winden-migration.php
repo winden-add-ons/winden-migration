@@ -3,7 +3,7 @@
  * Plugin Name:       Winden Migration from v1.x.x to v2.x.x
  * Plugin URI:        https://example.com/plugins/tailwind-cdn-for-gutenberg/
  * Description:       Simplified version to handle data migration in the database.
- * Version:           0.0.2
+ * Version:           1.0.0
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            DPlugins
@@ -48,7 +48,7 @@ function winden_migration_settings_page()
     $css_value = base64_decode($css_value_encoded);
     $config_value = base64_decode($config_value_encoded);
 
-    $config_value = str_replace('module.exports', 'export default', $config_value);
+    $config_value = str_replace('module.exports =', 'export default', $config_value);
 
     // Initialize or retrieve the existing 'winden_editor' option
     $winden_editor = get_option('winden_editor', array());
