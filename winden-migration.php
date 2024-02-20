@@ -2,8 +2,8 @@
 /*
  * Plugin Name:       Winden Migration from v1.x.x to v2.x.x
  * Plugin URI:        https://example.com/plugins/tailwind-cdn-for-gutenberg/
- * Description:       Handle the basics with this plugin.
- * Version:           0.0.1
+ * Description:       Simplified version to handle data migration in the database.
+ * Version:           0.0.2
  * Requires at least: 5.2
  * Requires PHP:      7.4
  * Author:            Marko Krstic
@@ -15,55 +15,7 @@
  * Domain Path:       /languages
  */
 
-// Define constants for script handle and CDN URL
-define('TAILWIND_CSS_HANDLE', 'tailwind-css-cdn');
-define('TAILWIND_CDN_URL', 'https://cdn.tailwindcss.com');
-
-// Enqueue Tailwind CSS
-function enqueue_tailwind_cdn_assets()
-{
-  wp_enqueue_script(
-    TAILWIND_CSS_HANDLE,
-    TAILWIND_CDN_URL,
-    array(),
-    null,
-    false
-  );
-
-  // Retrieve the Tailwind configuration from the database
-  $inline_script_from_db_encoded = get_option('wakaloka_winden_tailwind_config_cdn', '');
-  $inline_script_from_db = base64_decode($inline_script_from_db_encoded);
-  $inline_script_from_db = str_replace('module.exports', 'tailwind.config', $inline_script_from_db);
-
-  // Add inline script for Tailwind configuration
-  $inline_script = sprintf(
-    '<script id="tailwind-css-cdn-js-after">%s</script>',
-    $inline_script_from_db
-  );
-
-  wp_add_inline_script(TAILWIND_CSS_HANDLE, $inline_script);
-}
-add_action('enqueue_block_assets', 'enqueue_tailwind_cdn_assets');
-
-// Enqueue additional CSS from the database in Gutenberg editor
-function enqueue_additional_css_from_db()
-{
-  // Get CSS from the database
-  $css_from_db_encoded = get_option('wakaloka_winden_global_css', '');
-  $css_from_db = base64_decode($css_from_db_encoded);
-
-  // Check if there is any CSS to output
-  if ($css_from_db) {
-    echo '<style type="text/tailwindcss">' . esc_html($css_from_db) . '</style>';
-  }
-}
-add_action('enqueue_block_editor_assets', 'enqueue_additional_css_from_db');
-
-
-
-
-// Your previous constants and functions...
-
+// Function to add the menu for Winden Migration
 function winden_migration_settings_menu()
 {
   add_menu_page(
@@ -78,48 +30,71 @@ function winden_migration_settings_menu()
 }
 add_action('admin_menu', 'winden_migration_settings_menu');
 
+// Function to display the settings page for migration
 function winden_migration_settings_page()
 {
-
-  // Security check for permissions
-  if (!current_user_can('manage_options')) {
-    wp_die(__('You do not have sufficient permissions to access this page.'));
-  }
-
-  // Handle the 'Migrate CSS' button click
-  if (isset($_POST['migrate_css'])) {
+  // Handle the 'Migrate' button click within the settings page
+  if (isset($_POST['migrate'])) {
     if (!wp_verify_nonce($_POST['winden_migration_nonce'], 'winden_migration_action')) {
       die('Security check failed.');
     }
-    $css_value = get_option('wakaloka_winden_global_css', '');
-    update_option('winden_global_css', $css_value);
-    echo '<div class="notice notice-success is-dismissible"><p>CSS Migrated Successfully!</p></div>';
-  }
 
-  // Handle the 'Migrate Config' button click
-  if (isset($_POST['migrate_config'])) {
-    if (!wp_verify_nonce($_POST['winden_migration_nonce'], 'winden_migration_action')) {
-      die('Security check failed.');
-    }
-    $config_value = get_option('wakaloka_winden_tailwind_config_cdn', '');
-    update_option('winden_tailwind_config', $config_value);
-    echo '<div class="notice notice-success is-dismissible"><p>Config Migrated Successfully!</p></div>';
+    // Fetch existing CSS and Config data from options
+    $css_value_encoded = get_option('wakaloka_winden_global_css', '');
+    $config_value_encoded = get_option('wakaloka_winden_tailwind_config_cdn', '');
+    $license_key = get_option('wakaloka_winden_license_key', '');
+
+    // Decode the values if they're stored in base64 or another encoding format
+    $css_value = base64_decode($css_value_encoded);
+    $config_value = base64_decode($config_value_encoded);
+
+    $config_value = str_replace('module.exports', 'export default', $config_value);
+
+    // Initialize or retrieve the existing 'winden_editor' option
+    $winden_editor = get_option('winden_editor', array());
+
+    // Update the 'winden_editor' option with new CSS and Config data under specified indexes
+    $winden_editor[0] = [
+      'name' => 'input.css',
+      'content' => $css_value,
+      'language' => 'css',
+      'supportLanguages' => ['css', 'scss'],
+    ];
+
+    $winden_editor[1] = [
+      'name' => 'tailwind.config.js',
+      'content' => $config_value,
+      'language' => 'javascript',
+      'supportLanguages' => ['javascript'],
+    ];
+
+    // Save the updated 'winden_editor' option back to the database
+    update_option('winden_editor', $winden_editor);
+
+    // Prepare and save the license information
+    $winden_license = [
+      'key' => $license_key,
+      'status' => 'activated', // Assuming the status is activated. Adjust as necessary.
+      'checkedAt' => current_time('c') // Use the current time in ISO 8601 format
+    ];
+
+    // Save the updated 'winden_license' option back to the database
+    update_option('winden_license', $winden_license);
+
+    echo '<div class="notice notice-success is-dismissible"><p>Data migrated successfully to CSS Tab, Config Tab, and Winden License.</p></div>';
   }
 
   // Render the settings page
-?>
+  ?>
   <div class="wrap">
     <h1><?php _e('Winden Migration Settings', 'tailwind-cdn-for-gutenberg'); ?></h1>
 
     <form method="post">
       <?php wp_nonce_field('winden_migration_action', 'winden_migration_nonce'); ?>
-      <input type="submit" name="migrate_css" value="Migrate CSS" class="button button-primary">
-      <input type="submit" name="migrate_config" value="Migrate Config" class="button button-primary">
+      <input type="submit" name="migrate" value="Migrate Data" class="button button-primary">
     </form>
 
-    <p>This migration will transfer your CSS and configuration. Additionally, it will convert "module.exports" to "export default" to ensure compatibility with modern environments.</p>
-    <p>If you are using custom plugins, please follow up here for <a target="_blank" href="https://docs.dplugins.com/winden/migration-to-20/">more information.</a></p>
-
+    <p>This migration will transfer your CSS, configuration data, and license key from old options to new options for better compatibility and organization.</p>
   </div>
-<?php
+  <?php
 }
