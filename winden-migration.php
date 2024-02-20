@@ -116,6 +116,10 @@ function winden_migration_settings_page()
       <input type="submit" name="migrate_css" value="Migrate CSS" class="button button-primary">
       <input type="submit" name="migrate_config" value="Migrate Config" class="button button-primary">
     </form>
+
+    <p>This migration will transfer your CSS and configuration. Additionally, it will convert "module.exports" to "export default" to ensure compatibility with modern environments.</p>
+    <p>If you are using custom plugins, please follow up here for <a target="_blank" href="https://docs.dplugins.com/winden/migration-to-20/">more information.</a></p>
+
   </div>
 <?php
 }
